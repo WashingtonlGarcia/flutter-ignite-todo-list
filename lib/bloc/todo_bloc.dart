@@ -1,4 +1,4 @@
-import '../../core/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../shared/models/todo_item.dart';
 
 part 'todo_event.dart';
@@ -6,7 +6,7 @@ part 'todo_event.dart';
 part 'todo_state.dart';
 
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
-  TodoBloc() : super(initial: TodoDefaultState(items: []));
+  TodoBloc() : super(TodoDefaultState(items: []));
 
   @override
   Stream<TodoState> mapEventToState(TodoEvent event) async* {
@@ -31,6 +31,6 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     final item = (state as TodoDefaultState).items.singleWhere((element) => element.id == event.id);
     (state as TodoDefaultState).items.removeWhere((element) => element.id == item.id);
     (state as TodoDefaultState).items.add(item.copyWith(isDone: !item.isDone));
-    yield state;
+    yield TodoDefaultState(items: (state as TodoDefaultState).items);
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-
-import './screens/bloc/todo_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'bloc/todo_bloc.dart';
 import 'screens/done_screen.dart';
 import 'screens/task_screen.dart';
 import 'shared/models/todo_item.dart';
@@ -36,19 +36,19 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder(
-        stream: controller.stream,
-        builder: (context, snapshot) => PageView(
+      body: BlocBuilder<TodoBloc, TodoState>(
+        bloc: controller,
+        builder: (context, state) => PageView(
           controller: _pageViewController,
           children: <Widget>[
             TaskScreen(
-              itemList: snapshot.hasData ? (snapshot.data as TodoDefaultState).items.where((element) => !element.isDone).toList() : [],
+              itemList: (state as TodoDefaultState).items.where((element) => !element.isDone).toList(),
               onAddItem: onAddItem,
               onCompleteItem: onDoneItem,
               onRemoveItem: onRemoveItem,
             ),
             DoneScreen(
-              itemList: snapshot.hasData ? (snapshot.data as TodoDefaultState).items.where((element) => element.isDone).toList() : [],
+              itemList: state.items.where((element) => element.isDone).toList(),
               onRemoveItem: onRemoveItem,
               onResetItem: onDoneItem,
             )
