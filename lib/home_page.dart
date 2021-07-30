@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
+import './screens/bloc/todo_bloc.dart';
 import 'screens/done_screen.dart';
 import 'screens/task_screen.dart';
 import 'shared/models/todo_item.dart';
@@ -10,8 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _toDoItemList = <ToDoItem>[];
-  final _doneItemList = <ToDoItem>[];
+  final TodoBloc controller = TodoBloc();
 
   final _pageViewController = PageController(
     initialPage: 0,
@@ -20,87 +21,47 @@ class _HomePageState extends State<HomePage> {
 
   var _selectedIndex = 0;
 
-  void onAddItem(String itemTitle) {
-    setState(() {
-      _toDoItemList.add(
-        ToDoItem(
-          title: itemTitle,
-        ),
-      );
-    });
-  }
+  void onAddItem(String itemTitle) => controller.add(TodoCreatedEvent(item: ToDoItem(title: itemTitle, id: Uuid().v1())));
 
-  void onResetItem(ToDoItem item) {
-    setState(() {
-      _doneItemList.remove(item);
+  void onRemoveItem(ToDoItem item) => controller.add(TodoRemovedEvent(id: item.id));
 
-      _toDoItemList.add(
-        ToDoItem(
-          title: item.title,
-        ),
-      );
-    });
-  }
-
-  void onRemoveToDoItem(ToDoItem item) {
-    setState(() {
-      _toDoItemList.remove(item);
-    });
-  }
-
-  void onRemoveDoneItem(ToDoItem item) {
-    setState(() {
-      _doneItemList.remove(item);
-    });
-  }
-
-  void onCompleteItem(ToDoItem item) {
-    setState(() {
-      _toDoItemList.remove(item);
-
-      _doneItemList.add(
-        ToDoItem(
-          title: item.title,
-          isDone: true,
-        ),
-      );
-    });
-  }
+  void onDoneItem(ToDoItem item) => controller.add(TodoDoneEvent(id: item.id));
 
   @override
   void dispose() {
     _pageViewController.dispose();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: _pageViewController,
-        children: <Widget>[
-          TaskScreen(
-            itemList: _toDoItemList,
-            onAddItem: onAddItem,
-            onCompleteItem: onCompleteItem,
-            onRemoveItem: onRemoveToDoItem,
-          ),
-          DoneScreen(
-            itemList: _doneItemList,
-            onRemoveItem: onRemoveDoneItem,
-            onResetItem: onResetItem,
-          ),
-        ],
-        onPageChanged: (index) {
-          setState(() => _selectedIndex = index);
-        },
+      body: StreamBuilder(
+        stream: controller.stream,
+        builder: (context, snapshot) => PageView(
+          controller: _pageViewController,
+          children: <Widget>[
+            TaskScreen(
+              itemList: snapshot.hasData ? (snapshot.data as TodoDefaultState).items.where((element) => !element.isDone).toList() : [],
+              onAddItem: onAddItem,
+              onCompleteItem: onDoneItem,
+              onRemoveItem: onRemoveItem,
+            ),
+            DoneScreen(
+              itemList: snapshot.hasData ? (snapshot.data as TodoDefaultState).items.where((element) => element.isDone).toList() : [],
+              onRemoveItem: onRemoveItem,
+              onResetItem: onDoneItem,
+            )
+          ],
+          onPageChanged: (index) {
+            setState(() => _selectedIndex = index);
+          },
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
           setState(() => _selectedIndex = index);
-
           _pageViewController.animateToPage(
             _selectedIndex,
             duration: Duration(milliseconds: 350),
